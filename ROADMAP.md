@@ -15,7 +15,7 @@ G4 are closed below, on the runs and on the reading of the body against the repo
 and 3.4 did not close it: one maintainer wrote both callers. Every claim here names the run or
 the file it was read from.
 
-Last updated: 2026-11-20T16:57Z (close 9.11-9.14, preflight and workflow guards)
+Last updated: 2026-11-21T07:12Z (close 9.15-9.18, exit-code table, blank title, duplicate endpoint, size before read)
 rather than three, because a contributor who picked up two of them learned no format at all. The
 organization's `ISSUE_CONTRACT.md` in `posture-sec/.github` defines PI-1: a marker line naming the
 repository, the roadmap row, the kind and the wave tier, then nine numbered sections in the order a
@@ -659,6 +659,10 @@ it is why this repository's value right now is the plumbing rather than the find
 - [x] **9.12** Keep the example action reference as an explained placeholder. Done-when: `tests/test_example_pin_placeholder.py` finds exactly one placeholder reference and its adjacent full-sha and tag-risk explanation, and refuses both a tag and a real sha with file and line. Both mutations were observed locally; `example/workflow.yml` is unchanged. **Issue:** #84.
 - [x] **9.13** Require sha-pinned workflow actions with version comments. Done-when: `tests/test_workflows_pins.py` walks workflow `.yml` files, reuses `SHA_PIN`, accepts local actions, and refuses a floating tag or an uncommented sha with file and line. All 17 current references pass locally and both mutations fail; no workflow action pin changed. **Issue:** #91.
 - [x] **9.14** Cancel superseded pull request CI runs. Done-when: workflow-level concurrency in `ci.yml` groups by workflow and ref and cancels in progress only for pull requests; `tests/test_ci_concurrency.py` checks the block and rejects altered forms. The test failed before the block and passed locally afterward. CI does not write issues, unlike `watch.yml`; GitHub may still replace an older pending main run. **Issue:** #93.
+- [x] **9.15** Drive the exit code mapping block as a table. Done-when: `tests/test_action_exit_codes.py` extracts the last `run:` block from `action.yml` by step name, refuses to run when it no longer ends in `esac`, and executes it with bash over a 6 by 2 table of `GAUGE_EXIT` in `0`, `1`, `2`, `3`, `4` and the empty value against `BREAK_BUILD` `true` and `false`, asserting the exit code and the exact stdout line. Both mutations were observed locally: the catch-all arm changed to `exit 0` fails a row, and a line after `esac` fails the guard. `action.yml` is unchanged. **Issue:** #74.
+- [x] **9.16** Refuse a whitespace-only issue title before the action starts. Done-when: `check_text_input()` refuses a value blank after `.strip()` with `{name} must not be blank` and returns before the length and control-character checks, without trimming what it passes on, and `tests/test_validate_inputs_blank_text.py` covers a title of spaces, a label of spaces, a tab-only value, the empty string and a padded valid title through `validate_inputs.main()`. The spaces case exited 0 before the guard and exits 2 after, observed locally. **Issue:** #75.
+- [x] **9.17** Refuse a policy that lists the same endpoint twice. Done-when: `check_policy()` tracks the first index of each endpoint string and appends `config <path>: endpoint <url> is listed twice, at index <first> and index <second>`, a non-string entry keeps its own refusal and is never compared, and `tests/test_validate_inputs_duplicate_endpoints.py` covers an exact duplicate, a repeat after a distinct entry, a third copy reporting against the original, two distinct endpoints that pass and a URL differing only by a trailing slash that stays accepted. The array is refused and not rewritten: Gauge reads what the file says. **Issue:** #76.
+- [x] **9.18** Check the config byte limit before decoding the file. Done-when: `check_policy()` reads `path.stat().st_size` before `read_bytes()` and refuses a size over `MAX_CONFIG_BYTES` with the existing message without reading the file, a stat failure keeps `config <path>: cannot read it (<strerror>)`, the post-read guard stays as a second check for a file that grows between the two calls, and `tests/test_validate_inputs_config_size.py` covers those three cases with a path stand-in that counts reads plus a real policy of exactly 1 MiB that is read and accepted. **Issue:** #77.
 
 ## 6. Gates
 
@@ -725,7 +729,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 1 | The action | 11 | 11 | 100% |
 | 2 | Public shape | 12 | 13 | 92% |
 | 3 | Real use | 5 | 8 | 62% |
-| 9 (backlog) | Backlog, not scheduled | 8 | 14 | 57% |
+| 9 (backlog) | Backlog, not scheduled | 12 | 18 | 67% |
 | **All phases** | **Readiness total** | **35** | **39** | **90%** |
 | Gates | G1 to G5 | 4 | 5 | 80% |
 <!-- PROGRESS:END -->
@@ -759,6 +763,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 2026-11-14 | Task 9.7 closes: `tests/fixtures/README.md` gains a `sha256` column binding all six JSON report fixtures to their provenance rows while leaving the six fixture files and `tests/test_render_report.py` untouched, and `tests/test_fixture_manifest.py` adds 9 stdlib tests plus `--print-rows` to verify column shape, row coverage, `derived` markers on hand-built reports, and raw-byte digests, printing both digests and the regeneration command on a mismatch. Suite moves from 185 to 194 cases; `ruff` and `mypy` check 11 source files cleanly. | 9.7 |
 | 2026-11-20 | Tasks 9.8, 9.9, and 9.10 close: `scripts/render_report.py` stages outputs through temporary files and replaces body before summary; `action.yml` adds runner token masking as the first composite step and an event guard refusing non-dry pull_request runs before checkout; 3 new unit test modules (`test_output_atomicity.py`, `test_action_token_masking.py`, `test_action_event_guard.py`) add 8 test cases. | 9.8, 9.9, 9.10 |
 | 2026-11-20T16:57Z | Tasks 9.11–9.14 close locally: preflight rejects non-boolean spellings before Gauge checkout; tests protect the example placeholder and all workflow action pins; CI cancels superseded pull request runs. The Python 3.12 suite passed 220 tests, including the mutation and before/after checks. README metrics discovery now includes the repository root, so it counts importable tests rather than import failures. | 9.11, 9.12, 9.13, 9.14 |
+| 2026-11-21T07:12Z | Tasks 9.15 to 9.18 close locally. 9.15: `tests/test_action_exit_codes.py` reads the `case "$GAUGE_EXIT"` block out of `action.yml` by step name and runs it with bash over twelve rows, which is the first time D-05's colour decision has been executed on a desk; the file itself is untouched. 9.16, 9.17 and 9.18 add three refusals to `validate_inputs.py`: a title or label blank after trimming, an endpoint listed twice with both indexes named, and the 1 MiB ceiling answered from `stat()` before the policy is read, with the guard after the read kept as the second check. 31 cases across four new modules take the suite from 220 to 251, `ruff` 0.17.3 and `mypy` 2.4.0 are clean from the pinned venv, and `ARCHITECTURE.md` section 3 and the `CONTRIBUTING.md` rule row say what the pre-flight now refuses. | 9.15, 9.16, 9.17, 9.18 |
 
 ## 9. Last updated line format
 
